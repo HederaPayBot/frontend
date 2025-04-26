@@ -3,7 +3,7 @@
  */
 
 // Base URL for the API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 /**
  * Generic fetch function with error handling
@@ -13,7 +13,7 @@ async function fetchAPI(
   options: RequestInit = {}
 ): Promise<any> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+  console.log(url,"url");
   // Default headers
   const headers = {
     'Content-Type': 'application/json',
@@ -61,7 +61,12 @@ export const userAPI = {
   
   // Get user profile
   getProfile: async (twitterUsername: string) => {
-    return fetchAPI(`/users/${twitterUsername}`);
+    return fetchAPI(`/users/profile/${twitterUsername}`);
+  },
+  
+  // Check if a Twitter user has linked their Hedera account
+  getLinkStatus: async (twitterUsername: string) => {
+    return fetchAPI(`/users/link-status/${twitterUsername}`);
   },
 };
 
@@ -99,6 +104,39 @@ export const paymentAPI = {
 };
 
 /**
+ * Eliza-related API calls
+ */
+export const elizaAPI = {
+  // Send a message to the Eliza agent
+  sendMessage: async (text: string, userName: string) => {
+    return fetchAPI('/eliza/message', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        text, 
+        userId: userName, // Using username as userId for simplicity
+        userName 
+      }),
+    });
+  },
+  
+  // Send a command to Eliza (wrapper around the command endpoint)
+  sendCommand: async (command: string, userName: string) => {
+    return fetchAPI('/command', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        command, 
+        userName 
+      }),
+    });
+  },
+  
+  // Check Eliza service status
+  getStatus: async () => {
+    return fetchAPI('/eliza/status');
+  },
+};
+
+/**
  * Health check
  */
 export const checkHealth = async () => {
@@ -108,5 +146,6 @@ export const checkHealth = async () => {
 export default {
   user: userAPI,
   payment: paymentAPI,
+  eliza: elizaAPI,
   health: checkHealth,
 }; 

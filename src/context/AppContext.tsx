@@ -8,7 +8,9 @@ import { userAPI, paymentAPI } from '@/utils/api';
 interface User {
   id: string;
   twitterUsername: string;
+  twitterId: string;
   hederaAccountId?: string;
+  registeredAt?: string;
 }
 
 interface Transaction {
@@ -29,6 +31,8 @@ interface AppContextType {
   error: string | null;
   linkHederaAccount: (hederaAccountId: string) => Promise<void>;
   refreshTransactions: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
+  checkLinkStatus: (username: string) => Promise<boolean>;
 }
 
 // Create context
@@ -86,16 +90,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           
           // Set user from response
           setUser({
-            id: response.user.id,
-            twitterUsername: response.user.twitterUsername,
-            hederaAccountId: response.user.hederaAccountId,
+            id: response.data.twitterId,
+            twitterId: response.data.twitterId,
+            twitterUsername: response.data.twitterUsername,
+            hederaAccountId: response.data.hederaAccountId,
+            registeredAt: response.data.registeredAt
           });
           
           // Load transactions for the user
-          if (response.user.twitterUsername) {
+          if (response.data.twitterUsername) {
             try {
-              const txResponse = await paymentAPI.getPaymentHistory(response.user.twitterUsername);
-              setTransactions(txResponse.transactions || []);
+              await refreshTransactions();
             } catch (err) {
               console.error('Failed to load transaction history:', err);
               // Don't fail the whole registration process if transaction loading fails
@@ -117,6 +122,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     registerUser();
   }, [authenticated, privyUser, ready]);
+
+  // Refresh user profile
+  const refreshUserProfile = async () => {
+    if (!user) {
+      setError('User not authenticated');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      const response = await userAPI.getProfile(user.twitterUsername);
+      
+      setUser({
+        ...user,
+        hederaAccountId: response.user.hederaAccounts?.[0]?.accountId,
+        registeredAt: response.user.registeredAt
+      });
+      
+      setError(null);
+    } catch (error: any) {
+      setError(error.message || 'Failed to refresh user profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check if a Twitter user has linked their Hedera account
+  const checkLinkStatus = async (username: string) => {
+    try {
+      const response = await userAPI.getLinkStatus(username);
+      return response.linked;
+    } catch (error: any) {
+      console.error('Failed to check link status:', error);
+      return false;
+    }
+  };
 
   // Link Hedera account to user
   const linkHederaAccount = async (hederaAccountId: string) => {
@@ -173,6 +215,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         error,
         linkHederaAccount,
         refreshTransactions,
+        refreshUserProfile,
+        checkLinkStatus
       }}
     >
       {children}

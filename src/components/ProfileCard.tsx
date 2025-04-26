@@ -1,9 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useApp } from "@/context/AppContext";
+import { useEffect, useState } from "react";
 
 export function ProfileCard() {
-  const { user } = useApp();
+  const { user, refreshUserProfile } = useApp();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    // Check for user profile updates when component mounts
+    if (user) {
+      const fetchData = async () => {
+        setIsRefreshing(true);
+        try {
+          await refreshUserProfile();
+        } catch (error) {
+          console.error("Failed to refresh profile:", error);
+        } finally {
+          setIsRefreshing(false);
+        }
+      };
+      
+      fetchData();
+    }
+  }, []);
 
   if (!user) {
     return null;
@@ -31,6 +51,11 @@ export function ProfileCard() {
               {user.hederaAccountId && (
                 <span className="text-xs font-mono mt-1 text-muted-foreground">
                   Hedera ID: {user.hederaAccountId}
+                </span>
+              )}
+              {user.registeredAt && (
+                <span className="text-xs mt-1 text-muted-foreground">
+                  Registered: {new Date(user.registeredAt).toLocaleDateString()}
                 </span>
               )}
             </div>

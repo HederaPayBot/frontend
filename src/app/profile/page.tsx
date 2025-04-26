@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileCard } from '@/components/ProfileCard';
 import { AccountDisplay } from '@/components/AccountDisplay';
+import { TwitterCommandBuilder } from '@/components/dashboard/TwitterCommandBuilder';
 
 export default function Profile() {
   const router = useRouter();
@@ -77,6 +78,9 @@ export default function Profile() {
                 <AccountDisplay showLinkForm={true} />
               </CardContent>
             </Card>
+
+            {/* Twitter Command Builder */}
+            <TwitterCommandBuilder />
 
             {/* Twitter Command Guide */}
             <Card className="md:col-span-2">

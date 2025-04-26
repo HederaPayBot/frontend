@@ -32,6 +32,11 @@ export default function Home() {
                   Dashboard
                 </Button>
               </Link>
+              <Link href="/twitter-money">
+                <Button variant="default" className="bg-black hover:bg-gray-800">
+                  Twitter Money
+                </Button>
+              </Link>
               <Link href="/profile">
                 <Button variant="outline">
                   Profile
@@ -67,11 +72,18 @@ export default function Home() {
                 Fast, secure, and powered by Hedera.
               </p>
               {authenticated ? (
-                <Link href="/dashboard">
-                  <Button className="bg-white text-purple-700 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-lg shadow-md">
-                    Go to Dashboard
-                  </Button>
-                </Link>
+                <div className="flex space-x-4">
+                  <Link href="/dashboard">
+                    <Button className="bg-white text-purple-700 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-lg shadow-md">
+                      Go to Dashboard
+                    </Button>
+                  </Link>
+                  <Link href="/twitter-money">
+                    <Button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-md font-medium text-lg shadow-md">
+                      Try Twitter Money
+                    </Button>
+                  </Link>
+                </div>
               ) : (
                 <Button
                   onClick={login}
