@@ -15,6 +15,15 @@ Hedera Twitter Pay provides a seamless way for Twitter users to interact with th
 - View transaction history and account balances
 - Monitor the status of their blockchain operations
 
+## Recent Updates
+
+### Command Examples Update (June 2023)
+
+- Moved Twitter command examples to the main marketing page for better visibility
+- Simplified the dashboard to focus on core payment functionality
+- Improved overall user experience with cleaner navigation
+- Streamlined the interface to follow a more professional design
+
 ## Getting Started
 
 ### Prerequisites

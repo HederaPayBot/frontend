@@ -55,7 +55,7 @@ export function HederaAccountForm({ onSubmit }: HederaAccountFormProps) {
       } 
       // Otherwise use the default linkHederaAccount from context
       else if (user) {
-        await linkHederaAccount(formData.accountId);
+        await linkHederaAccount(formData.accountId, formData.privateKey, formData.networkType, formData.keyType);
         toast.success('Hedera account linked successfully!');
       } else {
         throw new Error('User not authenticated');

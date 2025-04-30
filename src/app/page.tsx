@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
+import { HeroCommandDemo } from "@/components/HeroCommandDemo";
 
 export default function Home() {
   const { login, authenticated, ready } = usePrivy();
@@ -30,11 +31,6 @@ export default function Home() {
               <Link href="/dashboard">
                 <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
                   Dashboard
-                </Button>
-              </Link>
-              <Link href="/twitter-money">
-                <Button variant="default" className="bg-black hover:bg-gray-800">
-                  Twitter Money
                 </Button>
               </Link>
               <Link href="/profile">
@@ -78,11 +74,6 @@ export default function Home() {
                       Go to Dashboard
                     </Button>
                   </Link>
-                  <Link href="/twitter-money">
-                    <Button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-md font-medium text-lg shadow-md">
-                      Try Twitter Money
-                    </Button>
-                  </Link>
                 </div>
               ) : (
                 <Button
@@ -93,22 +84,8 @@ export default function Home() {
                 </Button>
               )}
             </div>
-            <div className="hidden md:block">
-              {/* Replace with your own illustration/image */}
-              <div className="bg-white p-4 rounded-lg shadow-lg">
-                <div className="border border-gray-300 rounded p-3 bg-gray-50">
-                  <div className="flex items-center mb-2">
-                    <div className="w-10 h-10 rounded-full bg-gray-300 mr-3"></div>
-                    <p className="font-medium text-gray-800">@user123</p>
-                  </div>
-                  <p className="text-gray-700 mb-2">
-                    @hedera_pay send 5 HBAR to @friend456 for lunch yesterday
-                  </p>
-                  <div className="bg-purple-100 text-purple-800 p-2 rounded">
-                    ✓ Payment sent! Transaction ID: 0.0.123456@789012
-                  </div>
-                </div>
-              </div>
+            <div className="hidden md:flex md:justify-center md:items-center">
+              <HeroCommandDemo />
             </div>
           </div>
         </div>

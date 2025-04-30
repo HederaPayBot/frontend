@@ -1,208 +1,277 @@
 'use client';
 
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { userAPI, paymentAPI } from '@/utils/api';
+import { usePrivy, User as PrivyUser } from '@privy-io/react-auth';
+import { userAPI, paymentAPI, TokenBalance, Transaction as ApiTransaction, UserProfile } from '@/utils/api';
+import { toast } from 'sonner';
 
 // Define types
-interface User {
+export type User = {
   id: string;
-  twitterUsername: string;
-  twitterId: string;
+  twitterId?: string;
+  twitterUsername?: string;
   hederaAccountId?: string;
+  keyType?: string;
+  privateKey?: string;
+  networkType?: string;
+  balances?: TokenBalance[];
   registeredAt?: string;
-}
+};
 
-interface Transaction {
-  id: string;
-  sender: string;
-  recipient: string;
-  amount: number;
-  tokenType: string;
-  status: 'pending' | 'completed' | 'failed';
-  hederaTransactionId?: string;
-  timestamp: string;
-}
+export type Transaction = ApiTransaction;
 
 interface AppContextType {
   user: User | null;
-  transactions: Transaction[];
+  isRegistered: boolean;
   isLoading: boolean;
+  isLinked: boolean;
   error: string | null;
-  linkHederaAccount: (hederaAccountId: string) => Promise<void>;
+  transactions: Transaction[];
+  registerUser: (twitterUsername: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
   refreshTransactions: () => Promise<void>;
+  refreshBalances: () => Promise<void>;
+  refreshTokenBalances: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
-  checkLinkStatus: (username: string) => Promise<boolean>;
+  checkLinkStatus: (twitterUsername: string) => Promise<boolean>;
+  linkHederaAccount: (accountId: string, privateKey: string, networkType: string, keyType: string) => Promise<void>;
 }
 
 // Create context
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Provider component
-export function AppProvider({ children }: { children: ReactNode }) {
+export const AppProvider = ({ children }: { children: ReactNode }) => {
   const { user: privyUser, authenticated, ready } = usePrivy();
   
   const [user, setUser] = useState<User | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLinked, setIsLinked] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // Register user in our backend when authenticated with Privy
+  // Check if user exists when they authenticate
   useEffect(() => {
-    const registerUser = async () => {
-      if (authenticated && privyUser) {
-        try {
-          setIsLoading(true);
-          
-          // Extract Twitter username and ID from Privy user
-          let twitterUsername = '';
-          let twitterId = '';
-          
-          // Get linked accounts from Privy user
-          if (privyUser.linkedAccounts && Array.isArray(privyUser.linkedAccounts)) {
-            // Find Twitter account safely by casting to any to avoid TypeScript errors
-            // with the Privy API types, which may vary between versions
-            const twitterAccount = (privyUser.linkedAccounts as any[]).find(
-              account => account.type === 'twitter_oauth'
-            );
-            
-            if (twitterAccount) {
-              // Safely extract Twitter info
-              twitterUsername = twitterAccount?.username || 
-                               twitterAccount?.handle || 
-                               twitterAccount?.metadata?.username || 
-                               twitterAccount?.metadata?.handle || '';
-              
-              twitterId = twitterAccount?.id || 
-                         twitterAccount?.subject || 
-                         twitterAccount?.metadata?.id || '';
-            }
-          }
-          
-          if (!twitterUsername || !twitterId) {
-            setError('Twitter information is not available. Please link your Twitter account.');
-            setIsLoading(false);
-            return;
-          }
-          
-          // Register user in our backend
-          const response = await userAPI.register(twitterId, twitterUsername);
-          
-          // Set user from response
-          setUser({
-            id: response.data.twitterId,
-            twitterId: response.data.twitterId,
-            twitterUsername: response.data.twitterUsername,
-            hederaAccountId: response.data.hederaAccountId,
-            registeredAt: response.data.registeredAt
-          });
-          
-          // Load transactions for the user
-          if (response.data.twitterUsername) {
-            try {
-              await refreshTransactions();
-            } catch (err) {
-              console.error('Failed to load transaction history:', err);
-              // Don't fail the whole registration process if transaction loading fails
-            }
-          }
-          
-          setError(null);
-        } catch (error: any) {
-          setError(error.message || 'Failed to register user');
-        } finally {
-          setIsLoading(false);
+    if (!ready) return;
+    
+    if (!authenticated || !privyUser) {
+      setUser(null);
+      setIsRegistered(false);
+      setIsLoading(false);
+      return;
+    }
+
+    console.log('Authenticated:', authenticated);
+    console.log('Privy user:', privyUser);
+
+    const checkRegistration = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Extract Twitter data from Privy
+        const twitterAccount = privyUser.linkedAccounts.find(
+          account => account.type === 'twitter_oauth'
+        ) as any; // Type assertion to handle the Twitter account structure
+        
+        const twitterUsername = twitterAccount?.username || undefined;
+
+        console.log('Twitter username:', twitterUsername);
+
+
+        // Set basic user data from Privy
+        setUser({
+          id: privyUser.id,
+          twitterUsername,
+        });
+
+        // Check if user exists in our backend
+        const userExists = await userAPI.checkUserExists(twitterUsername);
+        
+        if (userExists.exists) {
+          setIsRegistered(true);
+          await refreshProfile();
+          await refreshTransactions();
+          await refreshBalances();
+        } else {
+          setIsRegistered(false);
         }
-      } else if (ready && !authenticated) {
-        setUser(null);
-        setTransactions([]);
+      } catch (error) {
+        console.error('Error checking user registration:', error);
+        setError(error instanceof Error ? error.message : 'An error occurred while checking registration.');
+      } finally {
         setIsLoading(false);
       }
     };
 
-    registerUser();
+    checkRegistration();
   }, [authenticated, privyUser, ready]);
 
-  // Refresh user profile
-  const refreshUserProfile = async () => {
-    if (!user) {
-      setError('User not authenticated');
-      return;
-    }
+  // Check if user has linked Hedera account
+  useEffect(() => {
+    const checkUserLinkStatus = async () => {
+      if (user?.twitterUsername) {
+        console.log('Checking link status for user:', user.twitterUsername);
+        try {
+          const linked = await checkLinkStatus(user.twitterUsername);
+          setIsLinked(linked);
+        } catch (error) {
+          console.error('Error checking link status:', error);
+          setIsLinked(false);
+        }
+      } else {
+        setIsLinked(false);
+      }
+    };
 
+    if (user) {
+      checkUserLinkStatus();
+    }
+  }, [user?.hederaAccountId, user?.twitterUsername]);
+
+  const registerUser = async (twitterUsername: string) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setIsLoading(true);
-      
-      const response = await userAPI.getProfile(user.twitterUsername);
-      
-      setUser({
-        ...user,
-        hederaAccountId: response.user.hederaAccounts?.[0]?.accountId,
-        registeredAt: response.user.registeredAt
-      });
-      
-      setError(null);
-    } catch (error: any) {
-      setError(error.message || 'Failed to refresh user profile');
+      const response = await userAPI.register(twitterUsername);
+      if (response.success) {
+        setIsRegistered(true);
+        toast.success('Registration successful!');
+        
+        // Refresh user data after registration
+        await refreshProfile();
+        await refreshTransactions();
+        await refreshBalances();
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
+      toast.error('Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check if a Twitter user has linked their Hedera account
-  const checkLinkStatus = async (username: string) => {
+  const refreshProfile = async () => {
+    console.log('Refreshing profile');
+    if ( !user?.twitterUsername) return;
+    
     try {
-      const response = await userAPI.getLinkStatus(username);
-      return response.linked;
-    } catch (error: any) {
-      console.error('Failed to check link status:', error);
+      const profile = await userAPI.getProfile(user.twitterUsername);
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        return {
+          ...prevUser,
+          ...mapProfileToUser(profile.user, prevUser.id),
+        };
+      });
+
+      console.log('Profile:', profile);
+      console.log('User:', user);
+
+      
+      // Check if user has a linked Hedera account
+      const hasLinkedAccount = profile.user.hederaAccounts?.some(account => account.accountId);
+      setIsLinked(!!hasLinkedAccount);
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      // Not setting the error state here to avoid showing errors on refresh
+    }
+  };
+
+  // Alias for refreshProfile
+  const refreshUserProfile = refreshProfile;
+
+  // Helper function to map UserProfile to User
+  const mapProfileToUser = (profile: UserProfile, id: string): User => {
+    const primaryAccount = profile.hederaAccounts?.find(account => account.isPrimary);
+    
+    return {
+      id,
+      twitterId: profile.twitterId,
+      twitterUsername: profile.twitterUsername,
+      hederaAccountId: primaryAccount?.accountId,
+      // Using optional chaining to handle potentially undefined properties
+      keyType: (primaryAccount as any)?.keyType,
+      networkType: (primaryAccount as any)?.networkType,
+      registeredAt: profile.registeredAt || new Date().toISOString(),
+    };
+  };
+
+  const refreshTransactions = async () => {
+    if (!user?.id || !user.twitterUsername) return;
+    
+    try {
+      // Only fetch if we're not already fetching transactions
+      if (isLoading) return;
+      
+      // Don't set global loading state here to avoid full page refresh
+      // Instead, components should handle their own loading states
+      const transactionsData = await userAPI.getTransactionHistory(user.twitterUsername);
+      setTransactions(transactionsData.transactions || []);
+    } catch (error) {
+      console.error('Error refreshing transactions:', error);
+    }
+  };
+
+  const refreshBalances = async () => {
+    if (!user?.id || !user.twitterUsername) return;
+    
+    try {
+      const balancesData = await userAPI.getTokenBalances(user.twitterUsername);
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        return {
+          ...prevUser,
+          balances: balancesData.balances,
+        };
+      });
+    } catch (error) {
+      console.error('Error refreshing balances:', error);
+    }
+  };
+
+  // Alias for refreshBalances
+  const refreshTokenBalances = refreshBalances;
+
+  const checkLinkStatus = async (twitterUsername: string): Promise<boolean> => {
+    try {
+      const profile = await userAPI.getProfile(twitterUsername);
+      const hasLinkedAccount = profile.user.hederaAccounts?.some(account => account.accountId);
+      return !!hasLinkedAccount;
+    } catch (error) {
+      console.error('Error checking link status:', error);
       return false;
     }
   };
 
-  // Link Hedera account to user
-  const linkHederaAccount = async (hederaAccountId: string) => {
-    if (!user) {
-      setError('User not authenticated');
-      return;
+  const linkHederaAccount = async (accountId: string, privateKey: string, networkType: string, keyType: string): Promise<void> => {
+    if (!user?.twitterUsername) {
+      throw new Error('User not authenticated');
     }
 
     try {
-      setIsLoading(true);
-      
-      const response = await userAPI.linkHederaAccount(user.twitterUsername, hederaAccountId);
-      
-      setUser({
-        ...user,
-        hederaAccountId: response.user.hederaAccountId,
-      });
-      
-      setError(null);
-    } catch (error: any) {
-      setError(error.message || 'Failed to link Hedera account');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const response = await userAPI.linkHederaAccount(
+        user.twitterUsername,
+        accountId,
+        privateKey,
+        networkType,
+        keyType
+      );
 
-  // Refresh user transactions
-  const refreshTransactions = async () => {
-    if (!user) {
-      setError('User not authenticated');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      
-      const response = await paymentAPI.getPaymentHistory(user.twitterUsername);
-      
-      setTransactions(response.transactions || []);
-      setError(null);
-    } catch (error: any) {
-      setError(error.message || 'Failed to load transactions');
-    } finally {
-      setIsLoading(false);
+      if (response.success) {
+        await refreshProfile();
+        toast.success('Hedera account linked successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to link Hedera account');
+      }
+    } catch (error) {
+      console.error('Link account error:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to link Hedera account. Please try again.');
     }
   };
 
@@ -210,22 +279,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         user,
-        transactions,
+        isRegistered,
         isLoading,
+        isLinked,
         error,
-        linkHederaAccount,
+        transactions,
+        registerUser,
+        refreshProfile,
         refreshTransactions,
+        refreshBalances,
+        refreshTokenBalances,
         refreshUserProfile,
-        checkLinkStatus
+        checkLinkStatus,
+        linkHederaAccount,
       }}
     >
       {children}
     </AppContext.Provider>
   );
-}
+};
 
-// Hook for using app context
-export function useApp() {
+// Hook for using the context
+export const useApp = () => {
   const context = useContext(AppContext);
   
   if (context === undefined) {
@@ -233,6 +308,6 @@ export function useApp() {
   }
   
   return context;
-}
+};
 
 export default AppContext; 

@@ -26,12 +26,12 @@ export function PrivyProvider({ children }: PrivyProviderProps) {
           accentColor: '#8247E5', // Hedera purple
           logo: '/logo.png',
         },
-        // Configure login methods
+        // Login methods
         loginMethods: ['twitter'],
-        // Required scopes for Twitter auth
+        // Create embedded wallets for users who don't have a wallet
         embeddedWallets: {
-          createOnLogin: 'all-users'
-        }
+          createOnLogin: 'users-without-wallets',
+        },
       }}
     >
       {children}

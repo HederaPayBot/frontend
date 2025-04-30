@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
@@ -15,6 +15,8 @@ export default function Transactions() {
   const { user, transactions, refreshTransactions, isLoading } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  // Add a ref to track if we've loaded transactions
+  const hasLoadedTransactions = useRef(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -23,12 +25,26 @@ export default function Transactions() {
     }
   }, [ready, authenticated, router]);
 
-  // Load transactions on mount
+  // Load transactions on mount - with fix to prevent infinite calls
   useEffect(() => {
-    if (authenticated && user) {
+    if (authenticated && user && !hasLoadedTransactions.current && !isLoading) {
+      hasLoadedTransactions.current = true;
       refreshTransactions();
     }
-  }, [authenticated, user, refreshTransactions]);
+    
+    // Reset the ref when user changes
+    return () => {
+      if (!user) {
+        hasLoadedTransactions.current = false;
+      }
+    };
+  }, [authenticated, user, isLoading]);
+
+  // Properly handle refresh with the ref
+  const handleRefresh = () => {
+    hasLoadedTransactions.current = false;
+    refreshTransactions();
+  };
 
   // Loading state
   if (!ready || isLoading) {
@@ -43,40 +59,18 @@ export default function Transactions() {
   const filteredTransactions = transactions.filter(tx => {
     // Filter by search term
     const matchesSearch = searchTerm === '' || 
-      tx.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.hederaTransactionId?.toLowerCase().includes(searchTerm.toLowerCase());
+      tx.recipientUsername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tx.senderUsername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tx.transactionId?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Filter by status
-    const matchesStatus = statusFilter === 'all' || tx.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || tx.status.toLowerCase() === statusFilter.toLowerCase();
     
     return matchesSearch && matchesStatus;
   });
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
-          <div className="flex space-x-4">
-            <Button
-              onClick={() => router.push('/dashboard')}
-              variant="outline"
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Dashboard
-            </Button>
-            <Button
-              onClick={() => router.push('/profile')}
-              variant="outline"
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Profile
-            </Button>
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <Card>
@@ -85,7 +79,7 @@ export default function Transactions() {
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4">
                 <div className="flex-1">
                   <Input
-                    placeholder="Search by recipient or transaction ID"
+                    placeholder="Search by username or transaction ID"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full"
@@ -104,7 +98,7 @@ export default function Transactions() {
                   </select>
                 </div>
                 <Button 
-                  onClick={() => refreshTransactions()}
+                  onClick={handleRefresh}
                   variant="outline"
                   className="whitespace-nowrap"
                 >

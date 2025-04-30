@@ -15,11 +15,11 @@ interface PaymentStatus {
 }
 
 interface PaymentFormProps {
-  onSubmit: (data: {recipient: string, amount: number, tokenType: string}) => void;
+  onSubmit?: (data: {recipient: string, amount: number, tokenType: string}) => void;
 }
 
 export function PaymentForm({ onSubmit }: PaymentFormProps) {
-  const { user, refreshTransactions } = useApp();
+  const { user, isLinked, refreshTransactions } = useApp();
   
   const [paymentDetails, setPaymentDetails] = useState({
     recipient: '',
@@ -52,6 +52,7 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
         return;
       }
       
+      // Direct API call to create the payment
       const response = await paymentAPI.createPayment(
         user.twitterUsername,
         paymentDetails.recipient,
@@ -62,7 +63,7 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
       setPaymentStatus({
         success: true,
         message: 'Payment sent successfully!',
-        txId: response.transaction.hederaTransactionId
+        txId: response.transactionId
       });
       
       // Show success toast
@@ -70,7 +71,7 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
         description: `You sent ${amount} ${paymentDetails.tokenType} to @${paymentDetails.recipient}`,
         action: {
           label: "View TX",
-          onClick: () => window.open(`https://hashscan.io/testnet/transaction/${response.transaction.hederaTransactionId}`, '_blank')
+          onClick: () => window.open(`https://hashscan.io/testnet/transaction/${response.transactionId}`, '_blank')
         }
       });
       
@@ -84,12 +85,14 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
       // Refresh transaction history
       await refreshTransactions();
       
-      // Call onSubmit callback
-      onSubmit({
-        recipient: paymentDetails.recipient,
-        amount,
-        tokenType: paymentDetails.tokenType
-      });
+      // Call onSubmit callback if provided
+      if (onSubmit) {
+        onSubmit({
+          recipient: paymentDetails.recipient,
+          amount,
+          tokenType: paymentDetails.tokenType
+        });
+      }
       
     } catch (error: any) {
       setPaymentStatus({
@@ -108,19 +111,19 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-lg">Send Payment</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Send Payment</CardTitle>
       </CardHeader>
       <CardContent>
-        {!user?.hederaAccountId ? (
+        {!isLinked ? (
           <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertDescription className="text-yellow-700">
+            <AlertDescription className="text-yellow-700 text-xs sm:text-sm">
               Please link your Hedera account to send payments.
             </AlertDescription>
           </Alert>
         ) : (
-          <form onSubmit={handlePayment} className="space-y-4">
+          <form onSubmit={handlePayment} className="space-y-3 sm:space-y-4">
             <div>
-              <label htmlFor="recipient" className="text-sm font-medium mb-1 block">
+              <label htmlFor="recipient" className="text-xs sm:text-sm font-medium mb-1 block">
                 Recipient Twitter Username
               </label>
               <Input
@@ -128,14 +131,14 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
                 placeholder="user123 (without @)"
                 value={paymentDetails.recipient}
                 onChange={(e) => setPaymentDetails({...paymentDetails, recipient: e.target.value})}
-                className="w-full"
+                className="w-full text-sm"
                 required
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
-                <label htmlFor="amount" className="text-sm font-medium mb-1 block">
+                <label htmlFor="amount" className="text-xs sm:text-sm font-medium mb-1 block">
                   Amount
                 </label>
                 <Input
@@ -146,7 +149,7 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
                   step="0.000001"
                   value={paymentDetails.amount}
                   onChange={(e) => setPaymentDetails({...paymentDetails, amount: e.target.value})}
-                  className="w-full"
+                  className="w-full text-sm"
                   required
                 />
               </div>
@@ -160,7 +163,7 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
             
             <Button
               type="submit"
-              className="w-full bg-[#8247E5] hover:bg-[#7038d6]"
+              className="w-full bg-[#8247E5] hover:bg-[#7038d6] text-sm font-medium mt-2"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Processing...' : 'Send Payment'}
@@ -171,7 +174,7 @@ export function PaymentForm({ onSubmit }: PaymentFormProps) {
         {/* Payment Status - keeping for backwards compatibility but using toasts for new alerts */}
         {paymentStatus && paymentStatus.success === false && (
           <Alert variant="destructive" className="mt-4">
-            <AlertDescription>
+            <AlertDescription className="text-xs sm:text-sm">
               {paymentStatus.message}
             </AlertDescription>
           </Alert>
