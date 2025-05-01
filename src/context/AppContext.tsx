@@ -2,7 +2,7 @@
 
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { usePrivy, User as PrivyUser } from '@privy-io/react-auth';
-import { userAPI, paymentAPI, TokenBalance, Transaction as ApiTransaction, UserProfile } from '@/utils/api';
+import { userAPI, paymentAPI, TokenBalance, Transaction as ApiTransaction, UserProfile, hederaUtils } from '@/utils/api';
 import { toast } from 'sonner';
 
 // Define types
@@ -15,6 +15,7 @@ export type User = {
   privateKey?: string;
   networkType?: string;
   balances?: TokenBalance[];
+  hbarBalance?: string;
   registeredAt?: string;
 };
 
@@ -25,16 +26,22 @@ interface AppContextType {
   isRegistered: boolean;
   isLoading: boolean;
   isLinked: boolean;
+  isBalanceLoading: boolean;
   error: string | null;
   transactions: Transaction[];
   registerUser: (twitterUsername: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshTransactions: () => Promise<void>;
   refreshBalances: () => Promise<void>;
+  refreshHbarBalance: () => Promise<void>;
   refreshTokenBalances: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   checkLinkStatus: (twitterUsername: string) => Promise<boolean>;
   linkHederaAccount: (accountId: string, privateKey: string, networkType: string, keyType: string) => Promise<void>;
+  // Helper methods for formatted values
+  getFormattedHbarBalance: () => string;
+  getEstimatedHbarUsdValue: (customPrice?: number) => number;
+  getHashscanAccountUrl: () => string | null;
 }
 
 // Create context
@@ -47,6 +54,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isBalanceLoading, setIsBalanceLoading] = useState<boolean>(false);
   const [isLinked, setIsLinked] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -79,7 +87,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         console.log('Twitter username:', twitterUsername);
 
-
         // Set basic user data from Privy
         setUser({
           id: privyUser.id,
@@ -92,8 +99,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (userExists.exists) {
           setIsRegistered(true);
           await refreshProfile();
-          await refreshTransactions();
-          await refreshBalances();
+          // Load balance, transactions, and token data in parallel
+          await Promise.all([
+            refreshHbarBalance(),
+            refreshTransactions(),
+            refreshTokenBalances()
+          ]);
         } else {
           setIsRegistered(false);
         }
@@ -112,7 +123,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkUserLinkStatus = async () => {
       if (user?.twitterUsername) {
-        console.log('Checking link status for user:', user.twitterUsername);
         try {
           const linked = await checkLinkStatus(user.twitterUsername);
           setIsLinked(linked);
@@ -142,8 +152,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         
         // Refresh user data after registration
         await refreshProfile();
-        await refreshTransactions();
-        await refreshBalances();
+        await Promise.all([
+          refreshHbarBalance(),
+          refreshTransactions(),
+          refreshTokenBalances()
+        ]);
       } else {
         throw new Error(response.message || 'Registration failed');
       }
@@ -158,7 +171,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshProfile = async () => {
     console.log('Refreshing profile');
-    if ( !user?.twitterUsername) return;
+    if (!user?.twitterUsername) return;
     
     try {
       const profile = await userAPI.getProfile(user.twitterUsername);
@@ -167,13 +180,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return {
           ...prevUser,
           ...mapProfileToUser(profile.user, prevUser.id),
+          // Preserve HBAR balance if it exists
+          hbarBalance: prevUser.hbarBalance 
         };
       });
 
-      console.log('Profile:', profile);
-      console.log('User:', user);
-
-      
       // Check if user has a linked Hedera account
       const hasLinkedAccount = profile.user.hederaAccounts?.some(account => account.accountId);
       setIsLinked(!!hasLinkedAccount);
@@ -182,9 +193,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       // Not setting the error state here to avoid showing errors on refresh
     }
   };
-
-  // Alias for refreshProfile
-  const refreshUserProfile = refreshProfile;
 
   // Helper function to map UserProfile to User
   const mapProfileToUser = (profile: UserProfile, id: string): User => {
@@ -218,31 +226,80 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const refreshHbarBalance = async () => {
+    if (!user?.id || !user.twitterUsername) return;
+    
+    try {
+      setIsBalanceLoading(true);
+      const balanceData = await userAPI.getHbarBalance(user.twitterUsername);
+      
+      if (balanceData.success) {
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            hbarBalance: balanceData.hbarBalance,
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing HBAR balance:', error);
+    } finally {
+      setIsBalanceLoading(false);
+    }
+  };
+
   const refreshBalances = async () => {
     if (!user?.id || !user.twitterUsername) return;
     
     try {
-      const balancesData = await userAPI.getTokenBalances(user.twitterUsername);
-      setUser(prevUser => {
-        if (!prevUser) return null;
-        return {
-          ...prevUser,
-          balances: balancesData.balances,
-        };
-      });
+      // Refresh both HBAR and token balances
+      await Promise.all([
+        refreshHbarBalance(),
+        refreshTokenBalances()
+      ]);
     } catch (error) {
       console.error('Error refreshing balances:', error);
     }
   };
 
-  // Alias for refreshBalances
-  const refreshTokenBalances = refreshBalances;
+  const refreshTokenBalances = async () => {
+    if (!user?.id || !user.twitterUsername) return;
+    
+    try {
+      const tokensData = await userAPI.getAllTokens(user.twitterUsername);
+      
+      if (tokensData.success) {
+        // Convert to TokenBalance format
+        const balances: TokenBalance[] = tokensData.tokens.map(token => ({
+          tokenId: token.tokenId,
+          tokenName: token.name,
+          tokenSymbol: token.symbol,
+          balance: token.balance,
+          type: 'FUNGIBLE_COMMON',
+          decimals: token.decimals
+        }));
+        
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            balances,
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing token balances:', error);
+    }
+  };
+
+  // Alias for refreshProfile for consistent naming
+  const refreshUserProfile = refreshProfile;
 
   const checkLinkStatus = async (twitterUsername: string): Promise<boolean> => {
     try {
-      const profile = await userAPI.getProfile(twitterUsername);
-      const hasLinkedAccount = profile.user.hederaAccounts?.some(account => account.accountId);
-      return !!hasLinkedAccount;
+      const linkStatus = await userAPI.getLinkStatus(twitterUsername);
+      return linkStatus.linked;
     } catch (error) {
       console.error('Error checking link status:', error);
       return false;
@@ -265,6 +322,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.success) {
         await refreshProfile();
+        // Load balance data after linking account
+        await Promise.all([
+          refreshHbarBalance(),
+          refreshTokenBalances()
+        ]);
         toast.success('Hedera account linked successfully!');
       } else {
         throw new Error(response.message || 'Failed to link Hedera account');
@@ -275,6 +337,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // ========== Helper methods for formatted values ==========
+  
+  /**
+   * Get formatted HBAR balance with proper decimal places
+   */
+  const getFormattedHbarBalance = (): string => {
+    if (!user?.hbarBalance) return '0.00';
+    return hederaUtils.formatHbarBalance(user.hbarBalance);
+  };
+  
+  /**
+   * Get estimated USD value of the user's HBAR balance
+   */
+  const getEstimatedHbarUsdValue = (customPrice?: number): number => {
+    if (!user?.hbarBalance) return 0;
+    return hederaUtils.estimateHbarToUsd(user.hbarBalance, customPrice);
+  };
+  
+  /**
+   * Get HashScan URL for the user's account
+   */
+  const getHashscanAccountUrl = (): string | null => {
+    if (!user?.hederaAccountId) return null;
+    return hederaUtils.getHashscanAccountUrl(
+      user.hederaAccountId, 
+      user.networkType || 'testnet'
+    );
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -282,16 +373,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         isRegistered,
         isLoading,
         isLinked,
+        isBalanceLoading,
         error,
         transactions,
         registerUser,
         refreshProfile,
         refreshTransactions,
         refreshBalances,
+        refreshHbarBalance,
         refreshTokenBalances,
         refreshUserProfile,
         checkLinkStatus,
         linkHederaAccount,
+        // Helper methods
+        getFormattedHbarBalance,
+        getEstimatedHbarUsdValue,
+        getHashscanAccountUrl
       }}
     >
       {children}

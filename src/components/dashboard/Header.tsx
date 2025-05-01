@@ -20,8 +20,6 @@ import {
   LogOut,
   ChevronDown,
   Loader2,
-  CreditCard,
-  HelpCircle,
   Home
 } from 'lucide-react';
 import Link from 'next/link';
@@ -126,6 +124,10 @@ export function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                  <Home className="mr-2 h-4 w-4" />
+                  <span>Dashboard</span>
+                </DropdownMenuItem>
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => router.push('/profile')}>
                     <User className="mr-2 h-4 w-4" />

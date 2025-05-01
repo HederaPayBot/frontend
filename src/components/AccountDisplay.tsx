@@ -3,16 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LinkOrRegisterModal } from "@/components/LinkOrRegisterModal";
 import { useApp } from "@/context/AppContext";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 
 interface AccountDisplayProps {
   showLinkForm?: boolean;
 }
 
 export function AccountDisplay({ showLinkForm = false }: AccountDisplayProps) {
-  const { user, isLoading } = useApp();
+  const { user, isLoading, isBalanceLoading, refreshHbarBalance } = useApp();
 
   const isLinked = !!user?.hederaAccountId;
+
+  // Format HBAR balance with commas and 2 decimal places
+  const formattedBalance = user?.hbarBalance 
+    ? Number(user.hbarBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })
+    : '0.00';
 
   if (isLoading) {
     return (
@@ -31,17 +36,41 @@ export function AccountDisplay({ showLinkForm = false }: AccountDisplayProps) {
 
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Hedera Account</CardTitle>
+        {isLinked && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => refreshHbarBalance()}
+            disabled={isBalanceLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isBalanceLoading ? 'animate-spin' : ''}`} />
+            <span className="sr-only">Refresh balance</span>
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {isLinked ? (
           <div>
-            <div className="flex items-center justify-between">
+            {/* HBAR Balance */}
+            <div className="mb-4 p-3 border rounded-md bg-gray-50">
+              <div className="text-sm text-gray-500 mb-1">Balance</div>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-semibold">{formattedBalance}</span>
+                <span className="text-sm font-medium text-gray-600 mb-0.5">HBAR</span>
+              </div>
+            </div>
+
+            {/* Account ID */}
+            <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium">Account ID:</span>
               <span className="font-mono text-sm">{user?.hederaAccountId}</span>
             </div>
-            <div className="mt-4">
+
+            {/* View on HashScan */}
+            <div>
               <Button
                 variant="outline"
                 size="sm"

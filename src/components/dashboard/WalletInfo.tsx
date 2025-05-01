@@ -11,9 +11,24 @@ import { Twitter, Copy, ExternalLink, RefreshCw, ArrowUpRight, Shield, Key, Info
 import { useApp } from "@/context/AppContext";
 import { LinkOrRegisterModal } from "@/components/LinkOrRegisterModal";
 import { TokenBalance } from '@/utils/api';
+import { formatTokenAmount } from '@/utils/formatting';
+import { hederaUtils } from '@/utils/api';
 
 export function WalletInfo() {
-  const { user, isLinked, refreshBalances, refreshProfile, isLoading } = useApp();
+  const { 
+    user, 
+    isLinked, 
+    refreshBalances, 
+    refreshHbarBalance, 
+    refreshTokenBalances, 
+    refreshProfile, 
+    isLoading, 
+    isBalanceLoading,
+    getFormattedHbarBalance,
+    getEstimatedHbarUsdValue,
+    getHashscanAccountUrl
+  } = useApp();
+  
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const copyToClipboard = (text: string) => {
@@ -27,9 +42,13 @@ export function WalletInfo() {
     
     setIsRefreshing(true);
     try {
-      await refreshProfile();
-      await refreshBalances();
-      toast.success("Profile data refreshed");
+      // Refresh profile and balance data in parallel
+      await Promise.all([
+        refreshProfile(),
+        refreshHbarBalance(),
+        refreshTokenBalances()
+      ]);
+      toast.success("Wallet data refreshed");
     } catch (error) {
       console.error('Error refreshing data:', error);
       toast.error("Failed to refresh data");
@@ -38,32 +57,29 @@ export function WalletInfo() {
     }
   };
   
-  const formatBalance = (balance: string, decimals: number) => {
-    const value = parseFloat(balance);
-    return value.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: decimals
-    });
-  };
-  
   const calculateTotalValueUSD = () => {
-    if (!user?.balances) return 0;
+    let total = 0;
     
-    return user.balances.reduce((total, token) => {
-      let usdValue = 0;
-      switch(token.tokenSymbol) {
-        case 'HBAR':
-          usdValue = parseFloat(token.balance) * 0.07;
-          break;
-        case 'USDC':
-        case 'USDT':
-          usdValue = parseFloat(token.balance);
-          break;
-        default:
-          usdValue = parseFloat(token.balance) * 0.01;
-      }
-      return total + usdValue;
-    }, 0);
+    // Add HBAR value
+    total += getEstimatedHbarUsdValue();
+    
+    // Add other token values
+    if (user?.balances) {
+      total += user.balances.reduce((acc, token) => {
+        let usdValue = 0;
+        switch(token.tokenSymbol) {
+          case 'USDC':
+          case 'USDT':
+            usdValue = parseFloat(token.balance);
+            break;
+          default:
+            usdValue = parseFloat(token.balance) * 0.01; // Default estimate for other tokens
+        }
+        return acc + usdValue;
+      }, 0);
+    }
+    
+    return total;
   };
   
   const renderTokenIcon = (type: string, symbol: string) => {
@@ -101,8 +117,9 @@ export function WalletInfo() {
     }
   };
   
-  const loading = isLoading || isRefreshing;
+  const loading = isLoading || isRefreshing || isBalanceLoading;
   const totalValueUSD = calculateTotalValueUSD();
+  const hashscanUrl = getHashscanAccountUrl();
   
   if (!user) {
     return (
@@ -231,6 +248,35 @@ export function WalletInfo() {
             </div>
           </div>
         </div>
+
+        {/* HBAR Balance Card - New Section */}
+        <div className="p-4 bg-gradient-to-r from-purple-800 to-indigo-900 text-white border-t border-purple-900">
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-sm font-medium text-white/90">HBAR Balance</h4>
+            <div className="flex items-center space-x-1">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-6 w-6 p-0 text-white/90 hover:text-white hover:bg-white/10"
+                onClick={() => refreshHbarBalance()}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex items-baseline">
+            <div className="text-3xl font-bold">
+              {getFormattedHbarBalance()}
+            </div>
+            <div className="ml-2 text-lg opacity-80">ℏ</div>
+          </div>
+          
+          <div className="mt-1 text-xs text-white/70">
+            ~${getEstimatedHbarUsdValue().toFixed(2)} USD
+          </div>
+        </div>
         
         {/* Account Information Panel */}
         <div className="bg-white p-3 sm:p-4 border-t border-b">
@@ -256,14 +302,16 @@ export function WalletInfo() {
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => window.open(`https://hashscan.io/${user?.networkType || 'testnet'}/account/${user?.hederaAccountId}`, '_blank')}
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </Button>
+                  {hashscanUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => window.open(hashscanUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -285,17 +333,28 @@ export function WalletInfo() {
         
         {/* Token Balances Section */}
         <div className="p-3 sm:p-4">
-          <h4 className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3 flex items-center">
-            Token Balances
-          </h4>
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-500 flex items-center">
+              Token Balances
+            </h4>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => refreshTokenBalances()}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
           
           {loading ? (
             <div className="flex justify-center py-6">
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#8247E5]"></div>
             </div>
-          ) : (user.balances?.length === 0) ? (
+          ) : (!user.balances || user.balances.length === 0) ? (
             <div className="text-center py-6 text-xs sm:text-sm text-gray-500">
-              No tokens found in your account
+              No additional tokens found in your account
             </div>
           ) : (
             <div className="space-y-2 sm:space-y-3">
@@ -313,7 +372,7 @@ export function WalletInfo() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-sm sm:text-base">
-                      {formatBalance(token.balance, token.decimals)}
+                      {hederaUtils.formatTokenBalance(token.balance, token.decimals)}
                     </div>
                     <div 
                       className="text-[10px] sm:text-xs text-gray-500 truncate w-[80px] sm:w-[120px] cursor-pointer text-right"
@@ -334,7 +393,8 @@ export function WalletInfo() {
           <Button 
             variant="outline" 
             className="w-full text-xs sm:text-sm border-gray-300 hover:bg-gray-100 transition-all" 
-            onClick={() => window.open(`https://hashscan.io/${user?.networkType || 'testnet'}/account/${user?.hederaAccountId}`, '_blank')}
+            onClick={() => hashscanUrl && window.open(hashscanUrl, '_blank')}
+            disabled={!hashscanUrl}
           >
             <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
             View in HashScan

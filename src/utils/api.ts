@@ -54,14 +54,40 @@ export interface TokenBalance {
   decimals: number;
 }
 
-export interface Token {
-  tokenId: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  totalSupply: string;
-  treasury?: any;
-  customFees?: string[];
+export interface HbarBalanceResponse {
+  success: boolean;
+  accountId: string;
+  hbarBalance: string;
+  network: string;
+}
+
+export interface TokensResponse {
+  success: boolean;
+  tokens: {
+    tokenId: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    balance: string;
+    rawBalance: string;
+  }[];
+  totalTokens: number;
+  accountId: string;
+  network: string;
+}
+
+export interface TokenDetailResponse {
+  success: boolean;
+  token: {
+    tokenId: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    balance: string;
+    rawBalance: string;
+    accountId: string;
+    network: string;
+  };
 }
 
 export interface ElizaMessage {
@@ -97,11 +123,6 @@ export interface RegisterResponse {
   user?: UserProfile;
 }
 
-export interface TokenBalancesResponse {
-  success: boolean;
-  balances: TokenBalance[];
-}
-
 export interface TransactionHistoryResponse {
   success: boolean;
   transactions: Transaction[];
@@ -134,6 +155,69 @@ export interface ElizaMessageResponse {
 }
 
 /**
+ * Hedera-specific utility functions
+ */
+export const hederaUtils = {
+  /**
+   * Generates a HashScan URL for a transaction
+   * @param transactionId The transaction ID
+   * @param network The network type (testnet, mainnet)
+   * @returns The HashScan URL
+   */
+  getHashscanTransactionUrl: (transactionId: string, network: string = 'testnet'): string => {
+    return `https://hashscan.io/${network}/transaction/${transactionId}`;
+  },
+  
+  /**
+   * Generates a HashScan URL for an account
+   * @param accountId The account ID
+   * @param network The network type (testnet, mainnet)
+   * @returns The HashScan URL
+   */
+  getHashscanAccountUrl: (accountId: string, network: string = 'testnet'): string => {
+    return `https://hashscan.io/${network}/account/${accountId}`;
+  },
+  
+  /**
+   * Formats a token balance with the correct number of decimal places
+   * @param balance The raw balance string
+   * @param decimals The number of decimal places
+   * @returns Formatted balance string
+   */
+  formatTokenBalance: (balance: string, decimals: number): string => {
+    const value = parseFloat(balance);
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: decimals > 8 ? 8 : decimals
+    });
+  },
+  
+  /**
+   * Formats HBAR balance to a user-friendly format
+   * @param hbarBalance The HBAR balance string
+   * @returns Formatted HBAR balance
+   */
+  formatHbarBalance: (hbarBalance: string): string => {
+    const value = parseFloat(hbarBalance);
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 5
+    });
+  },
+  
+  /**
+   * Estimate USD value of HBAR amount
+   * @param hbarAmount HBAR amount as string or number
+   * @param hbarPriceUSD Current HBAR price in USD (default: 0.07)
+   * @returns Estimated USD value
+   */
+  estimateHbarToUsd: (hbarAmount: string | number, hbarPriceUSD: number = 0.07): number => {
+    const amount = typeof hbarAmount === 'string' ? parseFloat(hbarAmount) : hbarAmount;
+    return amount * hbarPriceUSD;
+  }
+};
+
+/**
  * Generic fetch function with error handling
  */
 async function fetchAPI(
@@ -146,7 +230,6 @@ async function fetchAPI(
   }
   
   const url = `${API_BASE_URL}${endpoint}`;
-  console.log(url, "url");
   
   // Default headers
   const headers = {
@@ -248,12 +331,10 @@ export const userAPI = {
   
   // Check if a Twitter user has linked their Hedera account
   getLinkStatus: async (twitterUsername: string): Promise<LinkStatusResponse> => {
-    console.log(twitterUsername,"twitterUsername");
-    console.log(fetchAPI(`/users/link-status/${twitterUsername}`),"fetchAPI");
     return fetchAPI(`/users/link-status/${twitterUsername}`);
   },
 
-  // Get comprehensive transaction history for a user
+  // Get transaction history for a user
   getTransactionHistory: async (twitterUsername: string): Promise<TransactionHistoryResponse> => {
     return fetchAPI(`/users/transactions/${twitterUsername}`);
   },
@@ -272,8 +353,8 @@ export const userAPI = {
     network = 'testnet', 
     limit = 100, 
     startingToken?: string
-  ): Promise<Token[]> => {
-    let endpoint = `/user/all-tokens/${twitterUsername}?network=${network}&limit=${limit}`;
+  ): Promise<TokensResponse> => {
+    let endpoint = `/users/tokens/${twitterUsername}?network=${network}&limit=${limit}`;
     if (startingToken) {
       endpoint += `&startingToken=${startingToken}`;
     }
@@ -285,13 +366,16 @@ export const userAPI = {
     tokenId: string, 
     twitterUsername: string, 
     network = 'testnet'
-  ): Promise<Token> => {
-    return fetchAPI(`/user/token/${tokenId}/${twitterUsername}?network=${network}`);
+  ): Promise<TokenDetailResponse> => {
+    return fetchAPI(`/users/token/${tokenId}/${twitterUsername}?network=${network}`);
   },
 
-  // Get real-time token balances for a user
-  getTokenBalances: async (twitterUsername: string): Promise<TokenBalancesResponse> => {
-    return fetchAPI(`/users/all-tokens/${twitterUsername}`);
+  // Get user's HBAR balance
+  getHbarBalance: async (
+    twitterUsername: string,
+    network = 'testnet'
+  ): Promise<HbarBalanceResponse> => {
+    return fetchAPI(`/users/hbar-balance/${twitterUsername}?network=${network}`);
   }
 };
 
@@ -315,20 +399,8 @@ export const paymentAPI = {
         tokenType,
       }),
     });
-  },
-  
-  // Get payment history for a user
-  getPaymentHistory: async (twitterUsername: string): Promise<TransactionHistoryResponse> => {
-    return fetchAPI(`/payments/history/${twitterUsername}`);
-  },
-  
-  // Get details of a specific payment
-  getPaymentDetails: async (transactionId: string): Promise<TransactionDetailsResponse> => {
-    return fetchAPI(`/payments/${transactionId}`);
-  },
+  }
 };
-
-
 
 /**
  * Eliza-related API calls
@@ -367,4 +439,5 @@ export default {
   payment: paymentAPI,
   eliza: elizaAPI,
   health: checkHealth,
+  hedera: hederaUtils
 }; 
