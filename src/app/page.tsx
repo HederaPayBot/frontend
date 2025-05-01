@@ -38,9 +38,30 @@ export default function Home() {
   const [isInteracting, setIsInteracting] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const widgetSectionRef = useRef<HTMLDivElement>(null);
   const widgetIframeRef = useRef<HTMLIFrameElement>(null);
   const { isMobile, screenWidth } = useResponsiveStyles();
+
+  // Toggle mobile menu
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (mobileMenuOpen && !target.closest('#mobile-menu') && !target.closest('#menu-button')) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileMenuOpen]);
 
   // Prevent auto-scrolling to widget section
   useEffect(() => {
@@ -137,62 +158,135 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Hedera Twitter Pay</h1>
-          </div>
+      <header className="bg-white shadow relative z-20">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Hedera Twitter Pay</h1>
+            </div>
 
-          <div className="hidden md:flex space-x-4 mr-4">
-            <Link href="/help" className="text-gray-600 hover:text-purple-600">
-              Commands
-            </Link>
-            <Link href="/embed-widget" className="text-gray-600 hover:text-purple-600">
-              Widget
-            </Link>
-            <Link href="/embed" className="text-gray-600 hover:text-purple-600">
-              Embed Link
-            </Link>
-          </div>
-
-          {authenticated ? (
-            <div className="flex space-x-3">
-              <Link href="/dashboard">
-                <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
-                  Dashboard
-                </Button>
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex space-x-4 mr-4">
+              <Link href="/help" className="text-gray-600 hover:text-purple-600">
+                Commands
               </Link>
-              <Link href="/profile">
-                <Button variant="outline">
-                  Profile
-                </Button>
+              <Link href="/embed-widget" className="text-gray-600 hover:text-purple-600">
+                Widget
               </Link>
-              <Link href="/transactions">
-                <Button variant="outline">
-                  Transactions
-                </Button>
+              <Link href="/embed" className="text-gray-600 hover:text-purple-600">
+                Embed Link
               </Link>
             </div>
-          ) : (
-            <Button
-              onClick={login}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              Login with Twitter
-            </Button>
-          )}
+
+            {/* Desktop Authentication Buttons */}
+            <div className="hidden md:block">
+              {authenticated ? (
+                <div className="flex space-x-3">
+                  <Link href="/dashboard">
+                    <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link href="/profile">
+                    <Button variant="outline">
+                      Profile
+                    </Button>
+                  </Link>
+                  <Link href="/transactions">
+                    <Button variant="outline">
+                      Transactions
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <Button
+                  onClick={login}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Login with Twitter
+                </Button>
+              )}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              {authenticated && (
+                <Link href="/dashboard" className="mr-2">
+                  <Button size="sm" variant="default" className="bg-purple-600 hover:bg-purple-700">
+                    Dashboard
+                  </Button>
+                </Link>
+              )}
+              <button
+                id="menu-button"
+                onClick={toggleMobileMenu}
+                className="text-gray-700 hover:text-purple-600 focus:outline-none"
+                aria-label="Open menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div 
+            id="mobile-menu" 
+            className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg z-50 overflow-hidden transition-all duration-300 ease-in-out"
+            style={{ maxHeight: mobileMenuOpen ? '1000px' : '0px' }}
+          >
+            <div className="px-4 py-3 space-y-3">
+              <Link href="/help" className="block py-2 text-gray-700 hover:text-purple-600">
+                Commands
+              </Link>
+              <Link href="/embed-widget" className="block py-2 text-gray-700 hover:text-purple-600">
+                Widget
+              </Link>
+              <Link href="/embed" className="block py-2 text-gray-700 hover:text-purple-600">
+                Embed Link
+              </Link>
+              
+              {authenticated ? (
+                <>
+                  <div className="pt-2 border-t border-gray-200">
+                    <Link href="/profile" className="block py-2 text-gray-700 hover:text-purple-600">
+                      Profile
+                    </Link>
+                    <Link href="/transactions" className="block py-2 text-gray-700 hover:text-purple-600">
+                      Transactions
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="pt-2 border-t border-gray-200">
+                  <Button
+                    onClick={() => {
+                      login();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    Login with Twitter
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-16">
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-4xl font-extrabold mb-4">
+              <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
                 Send Crypto Payments with a Simple Tweet
               </h2>
-              <p className="text-xl mb-8">
+              <p className="text-lg sm:text-xl mb-8">
                 Just mention our bot and type a simple command to send HBAR to anyone on Twitter. 
                 Fast, secure, and powered by Hedera.
               </p>
@@ -266,37 +360,37 @@ export default function Home() {
       </div>
 
       {/* Features Section */}
-      <div className="py-16 bg-gray-50">
+      <div className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-gray-900">
             Features
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-purple-600 text-3xl mb-3">🔄</div>
-              <h3 className="text-xl font-semibold mb-2">Simple Commands</h3>
-              <p className="text-gray-600">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-purple-600 text-2xl sm:text-3xl mb-3">🔄</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Simple Commands</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Send funds with intuitive commands like "send 5 HBAR to @friend"
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-purple-600 text-3xl mb-3">🛡️</div>
-              <h3 className="text-xl font-semibold mb-2">Secure Payments</h3>
-              <p className="text-gray-600">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-purple-600 text-2xl sm:text-3xl mb-3">🛡️</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Secure Payments</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 All transactions processed on Hedera's secure ledger
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-purple-600 text-3xl mb-3">💬</div>
-              <h3 className="text-xl font-semibold mb-2">Chat Widget</h3>
-              <p className="text-gray-600">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-purple-600 text-2xl sm:text-3xl mb-3">💬</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Chat Widget</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Embed our interactive chat widget on your website
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-purple-600 text-3xl mb-3">📊</div>
-              <h3 className="text-xl font-semibold mb-2">Transaction History</h3>
-              <p className="text-gray-600">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-purple-600 text-2xl sm:text-3xl mb-3">📊</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Transaction History</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 View and track all your previous payments
               </p>
             </div>
@@ -305,42 +399,42 @@ export default function Home() {
       </div>
 
       {/* Twitter Integration Section */}
-      <div className="py-16 bg-gradient-to-b from-sky-50 to-white">
+      <div className="py-12 sm:py-16 bg-gradient-to-b from-sky-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-gray-900">Seamless Twitter Integration</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">Seamless Twitter Integration</h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
               HederaPayBot works directly with Twitter, allowing you to send cryptocurrency without leaving your favorite social platform.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-blue-500 text-3xl mb-3">🔄</div>
-              <h3 className="text-xl font-semibold mb-2">Send Payments via Tweet</h3>
-              <p className="text-gray-600">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-blue-500 text-2xl sm:text-3xl mb-3">🔄</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Send Payments via Tweet</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Simply mention @HederaPayBot with a command like "send 5 HBAR to @friend" - no need to leave Twitter.
               </p>
             </div>
             
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-blue-500 text-3xl mb-3">🔒</div>
-              <h3 className="text-xl font-semibold mb-2">Secure Twitter Authentication</h3>
-              <p className="text-gray-600">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-blue-500 text-2xl sm:text-3xl mb-3">🔒</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Secure Twitter Authentication</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Connect your Twitter account for secure, verified transactions without exposing your private keys.
               </p>
             </div>
             
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-blue-500 text-3xl mb-3">🌐</div>
-              <h3 className="text-xl font-semibold mb-2">Twitter Widget Integration</h3>
-              <p className="text-gray-600">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-blue-500 text-2xl sm:text-3xl mb-3">🌐</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Twitter Widget Integration</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Embed our widget on any website with automatic Twitter user detection for a seamless experience.
               </p>
             </div>
           </div>
           
-          <div className="mt-12 text-center">
+          <div className="mt-8 sm:mt-12 text-center">
             <a href="https://twitter.com/intent/tweet?text=@HederaPayBot%20help" target="_blank" rel="noopener noreferrer">
               <Button className="bg-blue-500 hover:bg-blue-600 text-white">
                 Try on Twitter Now
@@ -351,21 +445,21 @@ export default function Home() {
       </div>
 
       {/* Widget Embed Section */}
-      <div className="py-12 md:py-16 bg-gradient-to-b from-white to-gray-50" ref={widgetSectionRef}>
+      <div className="py-10 sm:py-12 md:py-16 bg-gradient-to-b from-white to-gray-50" ref={widgetSectionRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 lg:gap-12 items-center">
             <div className="space-y-6 order-2 lg:order-1">
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-900 relative inline-block">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-900 relative inline-block">
                   Embed HederaPayBot on Your Website
                   <div className="absolute -bottom-2 left-0 w-2/3 h-1 bg-gradient-to-r from-purple-600 to-transparent rounded"></div>
                 </h2>
-                <p className="text-base md:text-lg mb-6 text-gray-600">
+                <p className="text-sm sm:text-base md:text-lg mb-4 sm:mb-6 text-gray-600">
                   Add the HederaPayBot widget to your website to allow your users to interact with the Hedera blockchain directly.
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {[
                   { id: 'installation', icon: '💻', title: 'Simple Installation', desc: 'Copy-paste a single code snippet to integrate' },
                   { id: 'customizable', icon: '🎨', title: 'Customizable', desc: 'Match your brand colors and style' },
@@ -376,21 +470,21 @@ export default function Home() {
                     key={feature.id}
                     onMouseEnter={() => setActiveFeature(feature.id)}
                     onMouseLeave={() => setActiveFeature(null)}
-                    className={`relative bg-gradient-to-br from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-100 
+                    className={`relative bg-gradient-to-br from-purple-50 to-indigo-50 p-3 sm:p-4 rounded-lg border border-purple-100 
                       transition-all duration-300 transform hover:scale-105 hover:shadow-lg
                       ${activeFeature === feature.id ? 'ring-2 ring-purple-400 shadow-md' : ''}`}
                   >
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 text-purple-600 text-xl">{feature.icon}</div>
+                    <div className="flex items-start space-x-2 sm:space-x-3">
+                      <div className="flex-shrink-0 text-purple-600 text-lg sm:text-xl">{feature.icon}</div>
                       <div>
-                        <h3 className="font-medium text-gray-800">{feature.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{feature.desc}</p>
+                        <h3 className="font-medium text-sm sm:text-base text-gray-800">{feature.title}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">{feature.desc}</p>
                       </div>
                     </div>
                     
                     {/* Animated indicator */}
                     {activeFeature === feature.id && (
-                      <div className="absolute -right-1 -bottom-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center animate-pulse">
+                      <div className="absolute -right-1 -bottom-1 w-4 h-4 sm:w-5 sm:h-5 bg-purple-500 rounded-full flex items-center justify-center animate-pulse">
                         <span className="text-white text-xs">✓</span>
                       </div>
                     )}
@@ -398,38 +492,40 @@ export default function Home() {
                 ))}
               </div>
               
-              <div className="flex flex-wrap gap-4 mt-6">
-                <Link href="/embed-widget">
-                  <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-6">
+                <Link href="/embed-widget" className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white">
                     Get Embed Widget
                   </Button>
                 </Link>
-                <Link href="/help">
-                  <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                <Link href="/help" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto border-purple-300 text-purple-700 hover:bg-purple-50">
                     View API Docs
                   </Button>
                 </Link>
               </div>
               
               {/* Mobile version of device selector - only shows on mobile */}
-              <div className="flex md:hidden justify-center mt-8 mb-2">
-                <div className="flex items-center justify-center space-x-6 bg-gray-100 rounded-full p-2 shadow-inner">
+              <div className="flex md:hidden justify-center mt-6 sm:mt-8 mb-2">
+                <div className="flex items-center justify-center space-x-4 sm:space-x-6 bg-gray-100 rounded-full p-2 shadow-inner">
                   <button 
                     onClick={() => toggleView('web')}
                     disabled={isAnimating}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 ${widgetView === 'web' ? 'bg-purple-600 text-white' : 'text-gray-600'}`}
+                    className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-all duration-300
+                      ${widgetView === 'web' ? 'bg-purple-600 text-white' : 'text-gray-600'}`}
                   >
                     <span>🖥️</span>
-                    <span className="text-sm">Website</span>
+                    <span className="text-xs sm:text-sm">Website</span>
                   </button>
                   
                   <button 
                     onClick={() => toggleView('twitter')}
                     disabled={isAnimating}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 ${widgetView === 'twitter' ? 'bg-blue-500 text-white' : 'text-gray-600'}`}
+                    className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-all duration-300
+                      ${widgetView === 'twitter' ? 'bg-blue-500 text-white' : 'text-gray-600'}`}
                   >
                     <span>🐦</span>
-                    <span className="text-sm">Twitter</span>
+                    <span className="text-xs sm:text-sm">Twitter</span>
                   </button>
                 </div>
               </div>
@@ -441,31 +537,48 @@ export default function Home() {
                 <button 
                   onClick={() => toggleView('web')}
                   disabled={isAnimating}
-                  className={`flex flex-col items-center transition-all duration-300 ${widgetView === 'web' ? 'opacity-100 scale-110' : 'opacity-60 hover:opacity-80 scale-100'}`}
+                  className={`flex flex-col items-center transition-all duration-300
+                    ${widgetView === 'web' ? 'opacity-100 scale-110' : 'opacity-60 hover:opacity-80 scale-100'}`}
                 >
-                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-2 ${widgetView === 'web' ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md' : 'bg-gray-200 text-gray-500'}`}>
-                    <span className="text-2xl">🖥️</span>
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-2 
+                    ${widgetView === 'web' 
+                      ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md' 
+                      : 'bg-gray-200 text-gray-500'}`}
+                  >
+                    <span className="text-xl sm:text-2xl">🖥️</span>
                   </div>
-                  <span className={`text-sm font-medium ${widgetView === 'web' ? 'text-purple-600' : 'text-gray-500'}`}>Website</span>
+                  <span className={`text-xs sm:text-sm font-medium ${widgetView === 'web' ? 'text-purple-600' : 'text-gray-500'}`}>Website</span>
                 </button>
                 
                 <button 
                   onClick={() => toggleView('twitter')}
                   disabled={isAnimating}
-                  className={`flex flex-col items-center transition-all duration-300 ${widgetView === 'twitter' ? 'opacity-100 scale-110' : 'opacity-60 hover:opacity-80 scale-100'}`}
+                  className={`flex flex-col items-center transition-all duration-300
+                    ${widgetView === 'twitter' ? 'opacity-100 scale-110' : 'opacity-60 hover:opacity-80 scale-100'}`}
                 >
-                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-2 ${widgetView === 'twitter' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-500'}`}>
-                    <span className="text-2xl">🐦</span>
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-2
+                    ${widgetView === 'twitter' 
+                      ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md' 
+                      : 'bg-gray-200 text-gray-500'}`}
+                  >
+                    <span className="text-xl sm:text-2xl">🐦</span>
                   </div>
-                  <span className={`text-sm font-medium ${widgetView === 'twitter' ? 'text-blue-500' : 'text-gray-500'}`}>Twitter</span>
+                  <span className={`text-xs sm:text-sm font-medium ${widgetView === 'twitter' ? 'text-blue-500' : 'text-gray-500'}`}>Twitter</span>
                 </button>
               </div>
 
               {/* Creative Device Frame */}
-              <div className={`perspective-1000 transition-all duration-700 ${isAnimating ? 'rotate-y-180 opacity-0' : 'rotate-y-0 opacity-100'} ${isMobile ? 'w-full max-w-sm' : 'w-auto'}`}>
+              <div className={`perspective-1000 transition-all duration-700 
+                ${isAnimating ? 'rotate-y-180 opacity-0' : 'rotate-y-0 opacity-100'}
+                ${isMobile ? 'w-full max-w-sm' : 'w-auto'}`}
+              >
                 <div className={`relative ${widgetView === 'web' ? 'pb-8' : 'pb-4'} ${isMobile ? 'mx-auto' : ''}`}>
                   {/* Device frame */}
-                  <div className={`relative rounded-xl overflow-hidden transform transition-all duration-500 ${widgetView === 'web' ? 'bg-gradient-to-br from-gray-800 to-gray-900 p-2 md:p-3 shadow-xl' : 'bg-gradient-to-br from-blue-500 to-blue-600 p-1.5 md:p-2 shadow-lg'}`}>
+                  <div className={`relative rounded-xl overflow-hidden transform transition-all duration-500
+                    ${widgetView === 'web' 
+                      ? 'bg-gradient-to-br from-gray-800 to-gray-900 p-2 md:p-3 shadow-xl' 
+                      : 'bg-gradient-to-br from-blue-500 to-blue-600 p-1.5 md:p-2 shadow-lg'}`}
+                  >
                     {/* Shiny edges effect */}
                     <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-30"></div>
                     
@@ -495,7 +608,8 @@ export default function Home() {
                       </div>
                       
                       {/* Widget content with animated transition */}
-                      <div className={`relative group transition-all duration-700 ease-in-out transform ${isAnimating ? 'scale-95 blur-sm' : 'scale-100 blur-0'}`}>
+                      <div className={`relative group transition-all duration-700 ease-in-out transform
+                        ${isAnimating ? 'scale-95 blur-sm' : 'scale-100 blur-0'}`}>
                         <iframe 
                           ref={widgetIframeRef}
                           src="/embed-widget" 
@@ -508,7 +622,8 @@ export default function Home() {
                         {/* Interactive hover overlay */}
                         <div 
                           onClick={toggleWidgetInteraction} 
-                          className={`absolute inset-0 transition-opacity duration-300 cursor-pointer ${isInteracting ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:bg-black/5'}`}
+                          className={`absolute inset-0 transition-opacity duration-300 cursor-pointer
+                            ${isInteracting ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:bg-black/5'}`}
                         >
                           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
                           <div className="absolute bottom-0 left-0 right-0 p-3 text-white text-sm md:text-base font-medium text-center">
@@ -550,12 +665,16 @@ export default function Home() {
                   </div>
                   
                   {/* Floating badge */}
-                  <div className={`absolute -right-2 -top-2 px-2 py-1 rounded-full text-xs font-medium shadow-lg ${widgetView === 'web' ? 'bg-purple-600 text-white' : 'bg-blue-500 text-white'}`}>
+                  <div className={`absolute -right-2 -top-2 px-2 py-1 rounded-full text-xs font-medium shadow-lg
+                    ${widgetView === 'web' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-blue-500 text-white'}`}>
                     {widgetView === 'web' ? 'Website' : 'Twitter'}
                   </div>
                   
                   {/* Shadow and reflection */}
-                  <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4/5 h-4 bg-gradient-to-b from-black/20 to-transparent rounded-full blur-md`}></div>
+                  <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4/5 h-4 
+                    bg-gradient-to-b from-black/20 to-transparent rounded-full blur-md`}></div>
                 </div>
               </div>
 
@@ -565,7 +684,11 @@ export default function Home() {
                   <h4 className="text-sm font-medium">Integration Code</h4>
                   <button 
                     onClick={copyEmbedCode}
-                    className={`text-xs px-2 py-1 rounded transition-colors ${isCopied ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'} flex items-center gap-1`}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${
+                      isCopied 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    } flex items-center gap-1`}
                   >
                     {isCopied ? (
                       <>
@@ -608,7 +731,10 @@ export default function Home() {
                   {['Desktop', 'Tablet', 'Mobile', 'Auto'].map((device) => (
                     <button 
                       key={device}
-                      className={`px-2 py-1.5 text-xs rounded-md transition-all border ${device === 'Desktop' ? 'bg-purple-100 border-purple-300 text-purple-800 font-medium' : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'}`}
+                      className={`px-2 py-1.5 text-xs rounded-md transition-all border 
+                        ${device === 'Desktop' 
+                          ? 'bg-purple-100 border-purple-300 text-purple-800 font-medium' 
+                          : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'}`}
                     >
                       {device}
                     </button>
@@ -617,8 +743,8 @@ export default function Home() {
                 
                 <div className="mt-4 flex items-center">
                   <div className="h-2 flex-grow bg-gray-200 rounded-full">
-                    <div className={`h-full w-3/4 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full relative overflow-hidden`}>
-                      <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer`}></div>
+                    <div className="h-full w-3/4 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
                     </div>
                   </div>
                   <span className="text-xs ml-2 text-gray-500">75%</span>

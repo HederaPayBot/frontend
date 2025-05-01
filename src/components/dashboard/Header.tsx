@@ -20,16 +20,38 @@ import {
   LogOut,
   ChevronDown,
   Loader2,
-  Home
+  Home,
+  Menu,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export function Header() {
   const router = useRouter();
   const { logout, authenticated, ready, user } = usePrivy();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const twitterUsername = user?.twitter?.username || user?.email?.address?.split('@')[0] || 'user';
   const isLoading = !ready;
+
+  // Close mobile menu on navigation
+  const handleNavigation = (path: string) => {
+    setMobileMenuOpen(false);
+    router.push(path);
+  };
+
+  // Close mobile menu on window resize (if screen becomes larger)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Get avatar URL from user object
   const getUserAvatar = () => {
@@ -52,7 +74,7 @@ export function Header() {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Hedera Twitter Pay</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Hedera Twitter Pay</h1>
             </Link>
             <div className="hidden md:flex h-6 bg-gray-200 dark:bg-gray-700 w-px mx-1"></div>
             <div className="hidden md:flex gap-2">
@@ -82,7 +104,7 @@ export function Header() {
                 Profile
               </Button>
               
-            <Button 
+              <Button 
                 variant="ghost" 
                 className="text-sm font-medium"
                 onClick={() => router.push('/settings')}
@@ -93,75 +115,134 @@ export function Header() {
             </div>
           </div>
 
-          {isLoading ? (
-            <div className="flex items-center">
-              <Loader2 className="h-5 w-5 animate-spin mr-2 text-purple-600" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
-            </div>
-          ) : authenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 flex items-center gap-2 px-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage 
-                      src={getUserAvatar()} 
-                      alt={twitterUsername} 
-                    />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-xs">
-                      {twitterUsername.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-sm">
-                    <span className="font-medium">@{twitterUsername}</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col">
-                    <p className="text-sm font-medium">@{twitterUsername}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-                  <Home className="mr-2 h-4 w-4" />
-                  <span>Dashboard</span>
-                </DropdownMenuItem>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => router.push('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/transactions')}>
-                    <ClipboardList className="mr-2 h-4 w-4" />
-                    <span>Transactions</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/settings')}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="text-red-600 focus:text-red-700"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button
-              onClick={() => router.push('/')}
-              className="bg-purple-600 hover:bg-purple-700"
+          <div className="flex items-center gap-2">
+            {/* Mobile menu button */}
+            <Button 
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
             >
-              Login
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
-          )}
+
+            {isLoading ? (
+              <div className="flex items-center">
+                <Loader2 className="h-5 w-5 animate-spin mr-2 text-purple-600" />
+                <span className="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
+              </div>
+            ) : authenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 flex items-center gap-2 px-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage 
+                        src={getUserAvatar()} 
+                        alt={twitterUsername} 
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-xs">
+                        {twitterUsername.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="hidden sm:flex flex-col items-start text-sm">
+                      <span className="font-medium">@{twitterUsername}</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col">
+                      <p className="text-sm font-medium">@{twitterUsername}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                    <Home className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => router.push('/profile')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/transactions')}>
+                      <ClipboardList className="mr-2 h-4 w-4" />
+                      <span>Transactions</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/settings')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-red-600 focus:text-red-700"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                onClick={() => router.push('/')}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                Login
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-md">
+          <div className="py-2 px-4">
+            <nav className="flex flex-col space-y-1">
+              <Button 
+                variant="ghost" 
+                className="justify-start py-2 text-sm font-medium"
+                onClick={() => handleNavigation('/dashboard')}
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="justify-start py-2 text-sm font-medium"
+                onClick={() => handleNavigation('/transactions')}
+              >
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Transactions
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="justify-start py-2 text-sm font-medium"
+                onClick={() => handleNavigation('/profile')}
+              >
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="justify-start py-2 text-sm font-medium"
+                onClick={() => handleNavigation('/settings')}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Button>
+            </nav>
+          </div>
+        </div>
+      )}
     </header>
   );
 } 
