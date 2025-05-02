@@ -305,7 +305,10 @@ export default function ChatPage() {
         <p className="mb-4">Copy and paste this code into your website's HTML:</p>
         <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded overflow-x-auto">
           <code className="text-sm">
-            {`<iframe src="${window.location.origin}/chat" width="400" height="600" frameborder="0"></iframe>`}
+            {typeof window !== 'undefined' 
+              ? `<iframe src="${window.location.origin}/chat" width="400" height="600" frameborder="0"></iframe>`
+              : `<iframe src="/chat" width="400" height="600" frameborder="0"></iframe>`
+            }
           </code>
         </div>
       </div>

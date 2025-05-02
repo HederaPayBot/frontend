@@ -35,7 +35,7 @@ Hedera Twitter Pay provides a seamless way for Twitter users to interact with th
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/hedera-twitter-pay.git
+git clone https://github.com/HederaPayBot/frontend.git
 cd hedera-twitter-pay/frontend
 ```
 
@@ -46,16 +46,43 @@ pnpm install
 
 3. Create a `.env.local` file:
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
+NEXT_PUBLIC_PRIVY_APP_ID=
+NEXT_PUBLIC_PRIVY_APP_SECRET=
+NEXT_PUBLIC_JWKS_ENDPOINT=
+TWITTER_CLIENT_SECRET=
+TWITTER_CLIENT_ID=
+NEXT_PUBLIC_ELIZA_API_URL=
+NEXT_PUBLIC_API_URL=
 ```
 
-4. Run the development server:
+4. Set up Privy authentication:
+   - Create an account at [Privy Dashboard](https://dashboard.privy.io/)
+   - Create a new app in the Privy Dashboard
+   - Navigate to "App settings" > "Basics" to find your App ID and App Secret
+   - Set the obtained values in your `.env.local` file
+   - Use the JWKS endpoint format: `https://auth.privy.io/api/v1/apps/YOUR_APP_ID/jwks.json`
+
+5. Set up Twitter authentication:
+   - Create a Twitter Developer account
+   - Create a project and app in the Twitter Developer Portal
+   - Configure the app to use OAuth 2.0
+   - Add your callback URL (e.g., `http://localhost:3000/api/auth/callback/twitter`)
+   - Copy the Client ID and Client Secret to your `.env.local` file
+
+6. Run the development server:
 ```bash
 pnpm dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+7. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Twitter Integration
+
+The project uses `agent-twitter-client` for all Twitter interactions:
+- Imports the Scraper class from 'agent-twitter-client'
+- Accesses Twitter client via the getTwitterClient() utility function
+- Required environment variables: TWITTER_USERNAME, TWITTER_PASSWORD, TWITTER_EMAIL
+- Optional API credentials: TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET
 
 ## Architecture
 
@@ -101,6 +128,3 @@ The frontend interacts with the Hedera Twitter Pay API:
 3. Add tests for new functionality
 4. Submit pull requests with clear descriptions
 ```
-
-This comprehensive documentation should help maintain consistency in your frontend development and make it easier for team members to contribute effectively while maintaining a cohesive codebase.
-
