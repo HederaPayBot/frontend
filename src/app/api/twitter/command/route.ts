@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const effectiveUserName = twitterUsername || userName || 'visitor';
 
     // Forward the command to the backend API
-    const elizaApiUrl = process.env.ELIZA_API_URL || 'http://localhost:3001/api/twitter/command';
+    const elizaApiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL || 'http://localhost:3001/api/twitter/command';
     
     console.log(`Processing command from ${effectiveUserName}${twitterUserId ? ` (ID: ${twitterUserId})` : ''}: ${command}`);
     
