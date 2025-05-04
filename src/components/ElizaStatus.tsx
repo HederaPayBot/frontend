@@ -27,10 +27,11 @@ export function ElizaStatus() {
     try {
       const response = await elizaAPI.getStatus();
       console.log('Eliza status response:', response);
+      console.log('Eliza status details:', (response as any).details.status);
       if (response.success) {
         // Safely map response properties with fallbacks
         setStatusData({
-          status: (response as any).details?.available ? 'online' : 'offline',
+          status: (response as any).details?.status || 'unknown',
           uptime: (response as any).uptime || 'Unknown',
           lastUpdate: (response as any).lastUpdate || new Date().toISOString(),
           version: (response as any).version || '1.0.0'
@@ -77,6 +78,8 @@ export function ElizaStatus() {
       case 'online':
         return <Badge className="bg-green-500">Online</Badge>;
       case 'available':
+        return <Badge className="bg-green-500">Online</Badge>;
+      case 'active':
         return <Badge className="bg-green-500">Online</Badge>;
       case 'offline':
         return <Badge variant="destructive">Offline</Badge>;
