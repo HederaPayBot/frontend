@@ -30,7 +30,7 @@ export function ElizaStatus() {
       if (response.success) {
         // Safely map response properties with fallbacks
         setStatusData({
-          status: (response as any).details.status || 'online',
+          status: (response as any).details?.available ? 'online' : 'offline',
           uptime: (response as any).uptime || 'Unknown',
           lastUpdate: (response as any).lastUpdate || new Date().toISOString(),
           version: (response as any).version || '1.0.0'
