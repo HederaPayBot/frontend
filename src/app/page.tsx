@@ -287,7 +287,7 @@ export default function Home() {
                 Send Crypto Payments with a Simple Tweet
               </h2>
               <p className="text-lg sm:text-xl mb-8">
-                Just mention our bot and type a simple command to send HBAR to anyone on Twitter. 
+                Just mention our bot <a href="https://x.com/HederaPayBot" target="_blank" rel="noopener noreferrer" className="underline font-semibold">@HederaPayBot</a> and type a simple command to send HBAR to anyone on Twitter. 
                 Fast, secure, and powered by Hedera.
               </p>
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
@@ -336,7 +336,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Send a command</h3>
               <p className="text-gray-600">
-                Tweet a payment instruction mentioning our bot and the recipient.
+                Tweet a payment instruction mentioning <a href="https://x.com/HederaPayBot" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">@HederaPayBot</a> and the recipient.
               </p>
             </div>
             <div className="text-center p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -406,6 +406,24 @@ export default function Home() {
             <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
               HederaPayBot works directly with Twitter, allowing you to send cryptocurrency without leaving your favorite social platform.
             </p>
+            
+            {/* Twitter feature limitation notice - Updated for clarity */}
+            <div className="mt-4 mx-auto max-w-2xl bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 text-amber-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-amber-800">Twitter Widget Embedding Limitation</h3>
+                  <div className="mt-1 text-sm text-amber-700">
+                    <p>Due to Twitter's platform limitations, our widget cannot be directly embedded within Twitter. All bot functionality is fully working - you can interact with @HederaPayBot through tweets and use the widget on your own website!</p>
+                    <p className="mt-2">Follow our bot at <a href="https://x.com/HederaPayBot" target="_blank" rel="noopener noreferrer" className="font-medium underline">@HederaPayBot</a> on X to try it out.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
@@ -435,11 +453,12 @@ export default function Home() {
           </div>
           
           <div className="mt-8 sm:mt-12 text-center">
-            <a href="https://twitter.com/intent/tweet?text=@HederaPayBot%20help" target="_blank" rel="noopener noreferrer">
+            <a href="https://x.com/HederaPayBot" target="_blank" rel="noopener noreferrer">
               <Button className="bg-blue-500 hover:bg-blue-600 text-white">
                 Try on Twitter Now
               </Button>
             </a>
+            <p className="text-sm mt-2">Follow <a href="https://x.com/HederaPayBot" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">@HederaPayBot</a> on X</p>
           </div>
         </div>
       </div>
@@ -619,6 +638,20 @@ export default function Home() {
                           sandbox="allow-scripts allow-same-origin"
                         />
                         
+                        {/* Twitter feature limitation overlay - Updated for clarity */}
+                        {widgetView === 'twitter' && (
+                          <div className="absolute inset-0 bg-black/60 z-10 flex flex-col items-center justify-center text-white p-4">
+                            <div className="bg-amber-500/90 rounded-full p-2 mb-3">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            </div>
+                            <h3 className="text-center font-bold mb-2">Cannot Display on Twitter</h3>
+                            <p className="text-center text-sm opacity-90">Due to Twitter's limitations, this widget cannot be embedded directly on Twitter.</p>
+                            <p className="text-center text-xs mt-2 opacity-80">Widget works perfectly on your own website!</p>
+                          </div>
+                        )}
+                        
                         {/* Interactive hover overlay */}
                         <div 
                           onClick={toggleWidgetInteraction} 
@@ -781,7 +814,7 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4 text-lg">Connect</h4>
               <ul className="space-y-2">
-                <li><a href="https://twitter.com/HederaPayBot" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">Twitter</a></li>
+                <li><a href="https://x.com/HederaPayBot" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">Twitter / X</a></li>
                 <li><a href="https://hedera.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">Hedera</a></li>
                 <li><a href="https://github.com/yourusername/hedera-twitter-pay" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">GitHub</a></li>
               </ul>
