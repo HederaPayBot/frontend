@@ -288,13 +288,13 @@ export const userAPI = {
   // Register a user without requiring Hedera account details
   register: async (twitterUsername: string): Promise<RegisterResponse> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/register`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          twitterUsername
+          username: twitterUsername
         })
       });
       
