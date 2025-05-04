@@ -5,13 +5,13 @@ export const metadata: Metadata = {
   title: 'HederaPayBot Commands',
   description: 'Quick reference for HederaPayBot Twitter commands',
   openGraph: {
-    images: ['/api/og'],
+    images: ['https://hederapaybot.netlify.app/api/og'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'HederaPayBot Commands',
     description: 'Quick reference for HederaPayBot Twitter commands',
-    images: ['/api/og'],
+    images: ['https://hederapaybot.netlify.app/api/og'],
   },
 };
 

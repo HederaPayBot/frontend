@@ -3,13 +3,15 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
+// Add cors headers to allow Twitter/X to fetch the image
 export async function GET(request: NextRequest) {
   try {
     // Extract username from URL if available
     const { searchParams } = new URL(request.url);
     const username = searchParams.get('twitter_username') || 'user';
 
-    return new ImageResponse(
+    // Create the image response with OG content
+    const imageResponse = new ImageResponse(
       (
         <div
           style={{
@@ -90,6 +92,18 @@ export async function GET(request: NextRequest) {
         height: 630,
       },
     );
+
+    // Add CORS headers to the response
+    const headers = new Headers(imageResponse.headers);
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Methods', 'GET');
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+
+    // Return a new response with the added headers
+    return new Response(imageResponse.body, { 
+      status: imageResponse.status, 
+      headers 
+    });
   } catch (e) {
     console.log(`${e}`);
     return new Response(`Failed to generate the image`, {

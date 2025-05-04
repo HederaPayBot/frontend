@@ -559,7 +559,7 @@ export default function EmbedWidgetPage() {
             >
               <div className="flex items-center mb-1">
                 <span className={`opacity-70 ${getAdaptiveFontSize('xs')}`}>
-                  {message.sender === 'user' ? (twitterUser ? `@${twitterUser.username}` : 'You') : 'HederaPayBot'} • {formatTimestamp(message.timestamp)}
+                  {message.sender === 'user' ? (twitterUser ? `@${twitterUser.username}` : 'You') : 'HederaPayBot'} 
                 </span>
               </div>
               <div 

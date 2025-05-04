@@ -15,12 +15,12 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://hederapaybot.netlify.app',
     siteName: 'HederaPayBot',
-    images: ['/api/og'],
+    images: ['https://hederapaybot.netlify.app/api/og'],
   },
   twitter: {
     card: 'summary_large_image',
     site: '@HederaPayBot',
-    images: ['/api/og'],
+    images: ['https://hederapaybot.netlify.app/api/og'],
   },
 };
 
