@@ -149,9 +149,12 @@ export interface ElizaStatusResponse {
 
 export interface ElizaMessageResponse {
   success: boolean;
-  response: string;
-  action?: string;
-  data?: any;
+  elizaResponse: Array<{
+    user?: string;
+    text: string;
+    action?: string;
+    content?: any;
+  }>;
 }
 
 /**
@@ -411,10 +414,10 @@ export const elizaAPI = {
     text: string, 
     userName: string
   ): Promise<ElizaMessageResponse> => {
-    return fetchAPI('/eliza/message', {
+    return fetchAPI('/twitter/command', {
       method: 'POST',
       body: JSON.stringify({ 
-        text, 
+        command: text, 
         userId: userName, // Using username as userId for simplicity
         userName 
       }),
