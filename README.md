@@ -1,6 +1,3 @@
-## README.md
-
-```markdown
 # Hedera Twitter Pay Frontend
 
 The frontend interface for Hedera Twitter Pay - a service that allows Twitter users to send and receive HBAR and custom tokens using Twitter commands.
@@ -127,4 +124,4 @@ The frontend interacts with the Hedera Twitter Pay API:
 2. Create feature branches for new work
 3. Add tests for new functionality
 4. Submit pull requests with clear descriptions
-```
+
