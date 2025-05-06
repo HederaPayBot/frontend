@@ -208,10 +208,10 @@ export const hederaUtils = {
   /**
    * Estimate USD value of HBAR amount
    * @param hbarAmount HBAR amount as string or number
-   * @param hbarPriceUSD Current HBAR price in USD (default: 0.07)
+   * @param hbarPriceUSD Current HBAR price in USD (default: 0.17)
    * @returns Estimated USD value
    */
-  estimateHbarToUsd: (hbarAmount: string | number, hbarPriceUSD: number = 0.07): number => {
+  estimateHbarToUsd: (hbarAmount: string | number, hbarPriceUSD: number = 0.17): number => {
     const amount = typeof hbarAmount === 'string' ? parseFloat(hbarAmount) : hbarAmount;
     return amount * hbarPriceUSD;
   }

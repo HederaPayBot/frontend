@@ -57,30 +57,30 @@ export function WalletInfo() {
     }
   };
   
-  const calculateTotalValueUSD = () => {
-    let total = 0;
+  // const calculateTotalValueUSD = () => {
+  //   let total = 0;
     
-    // Add HBAR value
-    total += getEstimatedHbarUsdValue();
+  //   // Add HBAR value
+  //   total += getEstimatedHbarUsdValue();
     
-    // Add other token values
-    if (user?.balances) {
-      total += user.balances.reduce((acc, token) => {
-        let usdValue = 0;
-        switch(token.tokenSymbol) {
-          case 'USDC':
-          case 'USDT':
-            usdValue = parseFloat(token.balance);
-            break;
-          default:
-            usdValue = parseFloat(token.balance) * 0.01; // Default estimate for other tokens
-        }
-        return acc + usdValue;
-      }, 0);
-    }
+  //   // Add other token values
+  //   if (user?.balances) {
+  //     total += user.balances.reduce((acc, token) => {
+  //       let usdValue = 0;
+  //       switch(token.tokenSymbol) {
+  //         case 'USDC':
+  //         case 'USDT':
+  //           usdValue = parseFloat(token.balance);
+  //           break;
+  //         default:
+  //           usdValue = parseFloat(token.balance) * 0.01; // Default estimate for other tokens
+  //       }
+  //       return acc + usdValue;
+  //     }, 0);
+  //   }
     
-    return total;
-  };
+  //   return total;
+  // };
   
   const renderTokenIcon = (type: string, symbol: string) => {
     const baseClasses = "w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-md transition-transform hover:scale-105";
@@ -118,7 +118,7 @@ export function WalletInfo() {
   };
   
   const loading = isLoading || isRefreshing || isBalanceLoading;
-  const totalValueUSD = calculateTotalValueUSD();
+  // const totalValueUSD = calculateTotalValueUSD();
   const hashscanUrl = getHashscanAccountUrl();
   
   if (!user) {
@@ -238,9 +238,6 @@ export function WalletInfo() {
               </div>
               
               <div className="mt-1 flex flex-wrap items-center text-xs sm:text-sm text-gray-500 gap-1 sm:gap-2">
-                <p className="text-purple-700 font-semibold">
-                  Est. Value: ${totalValueUSD.toFixed(2)} USD
-                </p>
                 <div className="text-xs bg-purple-100 text-purple-800 rounded-full px-2 py-0.5">
                   {user.networkType || 'testnet'}
                 </div>
