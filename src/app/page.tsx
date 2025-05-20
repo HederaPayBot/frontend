@@ -33,7 +33,7 @@ const useResponsiveStyles = () => {
 
 export default function Home() {
   const { login, authenticated, ready } = usePrivy();
-  const [widgetView, setWidgetView] = useState<"web" | "twitter">("web");
+  const [widgetView, setWidgetView] = useState<"web" | "twitter" | "telegram">("web");
   const [isAnimating, setIsAnimating] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -94,7 +94,9 @@ export default function Home() {
     const embedCode =
       widgetView === "web"
         ? '<iframe src="/embed-widget" width="400" height="500" style="border:none;" title="HederaPayBot"></iframe>'
-        : '<iframe src="/embed-widget?twitter=true" width="350" height="450" style="border:none;" title="HederaPayBot"></iframe>';
+        : widgetView === "twitter"
+        ? '<iframe src="/embed-widget?twitter=true" width="350" height="450" style="border:none;" title="HederaPayBot"></iframe>'
+        : '<iframe src="/embed-widget?telegram=true" width="350" height="450" style="border:none;" title="HederaPayBot"></iframe>';
 
     navigator.clipboard
       .writeText(embedCode)
@@ -131,6 +133,11 @@ export default function Home() {
       height: isMobile ? "400px" : "450px",
       maxWidth: "100%",
     },
+    telegram: {
+      width: isMobile ? "100%" : "350px",
+      height: isMobile ? "400px" : "450px",
+      maxWidth: "100%",
+    },
   };
 
   // Platform-specific styling
@@ -147,10 +154,16 @@ export default function Home() {
       header: "bg-blue-500 text-white",
       label: "Twitter Embed",
     },
+    telegram: {
+      container:
+        "bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg shadow-md",
+      header: "bg-cyan-500 text-white",
+      label: "Telegram Embed",
+    }
   };
 
   // Toggle between web and Twitter views with animation
-  const toggleView = (view: "web" | "twitter") => {
+  const toggleView = (view: "web" | "twitter" | "telegram") => {
     if (view === widgetView || isAnimating) return;
 
     setIsAnimating(true);
@@ -332,7 +345,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
-                Send Crypto Payments with a Simple Tweet
+                Send Crypto Payments with a Simple Tweet or Message
               </h2>
               <p className="text-lg sm:text-xl mb-8">
                 Just mention our bot{" "}
@@ -344,9 +357,35 @@ export default function Home() {
                 >
                   @HederaPayBot
                 </a>{" "}
-                and type a simple command to send HBAR to anyone on Twitter.
-                Fast, secure, and powered by Hedera.
+                and type a simple command to send HBAR to anyone on Twitter
+                or message our{" "}
+                <a
+                  href="https://t.me/HederaPayBot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-semibold"
+                >
+                  Telegram bot
+                </a>
+                . Fast, secure, and powered by Hedera.
               </p>
+              <div className="bg-purple-50 border-l-4 border-purple-600 p-4 mb-6 rounded-r shadow-sm">
+                <p className="font-bold flex items-center text-purple-900">
+                  <span className="text-xl mr-2">🔔</span> New! Telegram Support Added
+                </p>
+                <p className="mt-1 text-purple-800">
+                  Now you can also use{" "}
+                  <a
+                    href="https://t.me/HederaPayBot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-700 font-semibold hover:text-purple-900 underline"
+                  >
+                    @HederaPayBot
+                  </a>{" "}
+                  on Telegram to manage your Hedera accounts and send payments!
+                </p>
+              </div>
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                 {authenticated ? (
                   <Link href="/dashboard">
@@ -400,11 +439,20 @@ export default function Home() {
                   href="https://x.com/HederaPayBot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-purple-600 hover:underline"
+                  className="text-blue-600 underline"
                 >
                   @HederaPayBot
                 </a>{" "}
-                and the recipient.
+                on X or message{" "}
+                <a
+                  href="https://t.me/HederaPayBot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
+                  @HederaPayBot
+                </a>{" "}
+                on Telegram
               </p>
             </div>
             <div className="text-center p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -735,6 +783,15 @@ export default function Home() {
                     <span>🐦</span>
                     <span className="text-xs sm:text-sm">Twitter</span>
                   </button>
+
+                  <button
+                    onClick={() => toggleView("telegram")}
+                    disabled={isAnimating}
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-all duration-300 text-gray-600"
+                  >
+                    <span>📱</span>
+                    <span className="text-xs sm:text-sm">Telegram</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -801,6 +858,23 @@ export default function Home() {
                     Twitter
                   </span>
                 </button>
+                
+                <button
+                  onClick={() => toggleView("telegram")}
+                  disabled={isAnimating}
+                  className="flex flex-col items-center transition-all duration-300 opacity-60 hover:opacity-80 scale-100"
+                >
+                  <div
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-2 bg-gray-200 text-gray-500"
+                  >
+                    <span className="text-xl sm:text-2xl">📱</span>
+                  </div>
+                  <span
+                    className="text-xs sm:text-sm font-medium text-gray-500"
+                  >
+                    Telegram
+                  </span>
+                </button>
               </div>
 
               {/* Creative Device Frame */}
@@ -815,7 +889,7 @@ export default function Home() {
               >
                 <div
                   className={`relative ${
-                    widgetView === "web" ? "pb-8" : "pb-4"
+                    widgetView === "web" ? "pb-8" : widgetView === "twitter" ? "pb-4" : "pb-4"
                   } ${isMobile ? "mx-auto" : ""}`}
                 >
                   {/* Device frame */}
@@ -824,7 +898,9 @@ export default function Home() {
                     ${
                       widgetView === "web"
                         ? "bg-gradient-to-br from-gray-800 to-gray-900 p-2 md:p-3 shadow-xl"
-                        : "bg-gradient-to-br from-blue-500 to-blue-600 p-1.5 md:p-2 shadow-lg"
+                        : widgetView === "twitter"
+                        ? "bg-gradient-to-br from-blue-500 to-blue-600 p-1.5 md:p-2 shadow-lg"
+                        : "bg-gradient-to-br from-cyan-500 to-cyan-600 p-1.5 md:p-2 shadow-lg"
                     }`}
                   >
                     {/* Shiny edges effect */}
@@ -837,7 +913,9 @@ export default function Home() {
                         className={`flex items-center justify-between px-2 py-1 text-xs ${
                           widgetView === "web"
                             ? "bg-gray-100 border-b border-gray-200"
-                            : "bg-blue-100 border-b border-blue-200"
+                            : widgetView === "twitter"
+                            ? "bg-blue-100 border-b border-blue-200"
+                            : "bg-cyan-100 border-b border-cyan-200"
                         }`}
                       >
                         <div className="flex items-center space-x-1">
@@ -847,13 +925,17 @@ export default function Home() {
                               <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
                               <div className="w-2 h-2 rounded-full bg-green-400"></div>
                             </>
-                          ) : (
+                          ) : widgetView === "twitter" ? (
                             <div className="text-blue-500 text-sm">🐦</div>
+                          ) : (
+                            <div className="text-cyan-500 text-sm">📱</div>
                           )}
                         </div>
                         <div className="px-2 py-0.5 bg-white bg-opacity-60 rounded text-xs truncate max-w-[180px] mx-auto">
                           {widgetView === "web"
                             ? "yourwebsite.com/payments"
+                            : widgetView === "twitter"
+                            ? "@HederaPayBot"
                             : "@HederaPayBot"}
                         </div>
                         <div className="w-4"></div>
@@ -972,10 +1054,12 @@ export default function Home() {
                     ${
                       widgetView === "web"
                         ? "bg-purple-600 text-white"
-                        : "bg-blue-500 text-white"
+                        : widgetView === "twitter"
+                        ? "bg-blue-500 text-white"
+                        : "bg-cyan-500 text-white"
                     }`}
                   >
-                    {widgetView === "web" ? "Website" : "Twitter"}
+                    {widgetView === "web" ? "Website" : widgetView === "twitter" ? "Twitter" : "Telegram"}
                   </div>
 
                   {/* Shadow and reflection */}
@@ -1030,17 +1114,19 @@ export default function Home() {
                           "
                           {widgetView === "web"
                             ? "/embed-widget"
-                            : "/embed-widget?twitter=true"}
+                            : widgetView === "twitter"
+                            ? "/embed-widget?twitter=true"
+                            : "/embed-widget?telegram=true"}
                           "
                         </span>
                         <br className="hidden sm:block" />
                         <span className="text-green-400"> width</span>=
                         <span className="text-yellow-400">
-                          "{widgetView === "web" ? "400" : "350"}"
+                          "{widgetView === "web" ? "400" : widgetView === "twitter" ? "350" : "350"}"
                         </span>
                         <span className="text-green-400"> height</span>=
                         <span className="text-yellow-400">
-                          "{widgetView === "web" ? "500" : "450"}"
+                          "{widgetView === "web" ? "500" : widgetView === "twitter" ? "450" : "450"}"
                         </span>
                         <br className="hidden sm:block" />
                         <span className="text-green-400"> style</span>=

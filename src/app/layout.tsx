@@ -8,8 +8,8 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Hedera Twitter Pay",
-  description: "Send payments on Hedera via Twitter commands",
+  title: "Hedera Twitter & Telegram Pay - Smart Payments with simple commands",
+  description: "A simple way to send crypto payments using Twitter mentions and Telegram messages. Just mention @HederaPayBot and type a command to transfer HBAR to anyone.",
   openGraph: {
     type: 'website',
     locale: 'en_US',
